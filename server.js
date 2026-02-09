@@ -1,11 +1,14 @@
 const express = require('express');
+const path = require('path');
 const app = express();
 const http = require('http').createServer(app);
 const { Server } = require('socket.io');
 
 // 请求体大小限制（100KB，仅影响 express 路由）
 app.use(express.json({ limit: '100kb' }));
-app.use(express.static('public'));
+// 提供打包后的前端资源
+const distPath = path.join(__dirname, 'dist');
+app.use(express.static(distPath));
 
 // Socket.IO：单条消息最大 500KB，防止大图拖垮内存
 const io = new Server(http, { maxHttpBufferSize: 500 * 1024 });
@@ -63,6 +66,11 @@ io.on('connection', (socket) => {
     socket.on('error', (err) => {
         console.error('Socket error:', socket.id, err);
     });
+});
+
+// 兜底：所有非 Socket.IO 请求都交给前端路由（目前是单页应用）
+app.get('*', (req, res) => {
+    res.sendFile(path.join(distPath, 'index.html'));
 });
 
 const PORT = process.env.PORT || 3000;

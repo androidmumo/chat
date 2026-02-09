@@ -1,18 +1,31 @@
 # 使用官方 Node.js 运行时作为基础镜像（Alpine 体积小）
-FROM node:20-alpine
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# 安装所有依赖（包含 devDependencies），用于构建前端
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY . .
+
+# 构建前端（Vite）
+RUN npm run build
+
+FROM node:20-alpine AS runner
 
 # 生产环境，避免 devDependencies 与部分运行时优化
 ENV NODE_ENV=production
 
 WORKDIR /app
 
-# 先只复制依赖文件，利用层缓存
+# 仅安装生产依赖
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
-# 再复制应用源码
+# 拷贝服务端和前端构建产物
 COPY server.js ./
-COPY public ./public
+COPY --from=builder /app/dist ./dist
 
 # 使用非 root 用户运行（安全最佳实践）
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup \

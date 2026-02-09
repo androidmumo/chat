@@ -38,10 +38,28 @@ npm ci
 npm install
 ```
 
-#### 2. 启动服务
+#### 2. 开发模式（Vite + Vue 前端）
+
+推荐开发时前后端分开跑，前端用 Vite，后端用 Node：
 
 ```bash
-npm start
+# 终端 1：启动后端（Socket.IO + 静态兜底）
+npm start        # 默认 http://localhost:3000
+
+# 终端 2：启动前端（Vite）
+npm run dev      # 默认 http://localhost:5173
+```
+
+说明：
+
+- Vite dev server 会通过代理把 `/socket.io` 请求转发到 `http://localhost:3000`，前后端联调不用关心 CORS。
+- 前端代码位于 `src/`，入口为 `src/main.js`，主组件为 `src/App.vue`。
+
+#### 3. 生产构建并本地运行
+
+```bash
+npm run build    # 使用 Vite 构建前端到 dist/
+npm start        # Node + Express 提供 dist 静态文件和 Socket.IO
 ```
 
 默认监听端口：
