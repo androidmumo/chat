@@ -20,11 +20,22 @@
                     <div class="chat-control-group">
                         <div class="control-item">
                             <label for="profile-select" class="control-label" data-i18n="profileLabel">身份</label>
-                            <select id="profile-select" class="control-select">
-                                <option value="1" data-i18n="profile1">身份 1</option>
-                                <option value="2" data-i18n="profile2">身份 2</option>
-                                <option value="3" data-i18n="profile3">身份 3</option>
-                            </select>
+                            <div class="control-inline">
+                                <select id="profile-select" class="control-select">
+                                    <option value="1" data-i18n="profile1">身份 1</option>
+                                    <option value="2" data-i18n="profile2">身份 2</option>
+                                    <option value="3" data-i18n="profile3">身份 3</option>
+                                </select>
+                                <button
+                                    id="profile-edit-btn"
+                                    class="control-icon-button"
+                                    type="button"
+                                    data-i18n-title="profileEditTitle"
+                                    title="编辑当前身份"
+                                >
+                                    <i class="fas fa-user-astronaut"></i>
+                                </button>
+                            </div>
                         </div>
                         <div class="control-item">
                             <label for="theme-select" class="control-label" data-i18n="themeLabel">主题</label>
@@ -47,33 +58,6 @@
         </div>
         <div class="chat-messages" id="messages"></div>
         <div class="chat-input-container">
-            <div class="encryption-controls">
-                <input
-                    type="text"
-                    id="nickname"
-                    maxlength="20"
-                    data-i18n-placeholder="nicknamePlaceholder"
-                    data-i18n-title="nicknameTitle"
-                    placeholder="昵称（可选）"
-                    title="设置后将在消息中显示"
-                >
-                <input
-                    type="text"
-                    id="encryption-key"
-                    data-i18n-placeholder="encryptionKeyPlaceholder"
-                    data-i18n-title="encryptionKeyTitle"
-                    placeholder="加密密钥"
-                    title="设置后本地消息将使用该密钥加密"
-                >
-                <button
-                    id="set-key"
-                    type="button"
-                    data-i18n-title="setKeyTitle"
-                    title="设置加密密钥"
-                >
-                    <i class="fas fa-key"></i>
-                </button>
-            </div>
             <form id="chat-form" class="chat-input">
                 <input
                     id="chat-input"
@@ -87,6 +71,81 @@
                 </label>
                 <input type="file" id="image-upload" accept="image/*" style="display: none;">
                 <button type="submit"><i class="fas fa-paper-plane"></i></button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 身份配置弹窗 -->
+    <div id="profile-modal" class="modal-overlay" aria-hidden="true">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title-group">
+                    <div class="modal-icon">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
+                    <div class="modal-title-text">
+                        <h2 data-i18n="profileModalTitle">编辑身份</h2>
+                        <p class="modal-subtitle" data-i18n="profileModalSubtitle">
+                            为当前身份设置昵称与加密密钥，只保存在本地浏览器
+                        </p>
+                    </div>
+                </div>
+                <button class="modal-close" id="profile-modal-close" type="button" aria-label="Close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="profile-form" class="modal-body">
+                <div class="field-group">
+                    <div class="field-label-row">
+                        <label for="profile-nickname" data-i18n="profileNicknameLabel">昵称</label>
+                        <span class="field-hint" data-i18n="profileNicknameHint">会显示在消息上方和头像文字中</span>
+                    </div>
+                    <div class="field-input-with-icon">
+                        <span class="field-icon">
+                            <i class="fas fa-signature"></i>
+                        </span>
+                        <textarea
+                            id="profile-nickname"
+                            class="field-textarea auto-resize"
+                            rows="1"
+                            maxlength="40"
+                            data-autoresize="true"
+                            data-i18n-placeholder="profileNicknamePlaceholder"
+                            placeholder="输入一个你喜欢的昵称"
+                        ></textarea>
+                    </div>
+                </div>
+
+                <div class="field-group">
+                    <div class="field-label-row">
+                        <label for="profile-key" data-i18n="profileKeyLabel">加密密钥</label>
+                        <span class="field-hint" data-i18n="profileKeyHint">
+                            仅本地使用，不会上传服务器；同一个密钥的用户之间才能互相解密
+                        </span>
+                    </div>
+                    <div class="field-input-with-icon">
+                        <span class="field-icon">
+                            <i class="fas fa-shield-alt"></i>
+                        </span>
+                        <textarea
+                            id="profile-key"
+                            class="field-textarea auto-resize"
+                            rows="1"
+                            data-autoresize="true"
+                            data-i18n-placeholder="profileKeyPlaceholder"
+                            placeholder="为当前身份设置一个加密密钥"
+                        ></textarea>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" id="profile-modal-cancel" data-i18n="profileCancel">
+                        取消
+                    </button>
+                    <button type="submit" class="btn-primary" data-i18n="profileSave">
+                        保存
+                    </button>
+                </div>
             </form>
         </div>
     </div>

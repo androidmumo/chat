@@ -19,12 +19,16 @@ const form = document.getElementById('chat-form');
 const input = document.getElementById('chat-input');
 const messages = document.getElementById('messages');
 const imageUpload = document.getElementById('image-upload');
-const encryptionKeyInput = document.getElementById('encryption-key');
-const setKeyButton = document.getElementById('set-key');
-const nicknameInput = document.getElementById('nickname');
 const profileSelect = document.getElementById('profile-select');
 const themeSelect = document.getElementById('theme-select');
 const langSelect = document.getElementById('lang-select');
+const profileEditBtn = document.getElementById('profile-edit-btn');
+const profileModal = document.getElementById('profile-modal');
+const profileModalClose = document.getElementById('profile-modal-close');
+const profileModalCancel = document.getElementById('profile-modal-cancel');
+const profileForm = document.getElementById('profile-form');
+const profileNicknameInput = document.getElementById('profile-nickname');
+const profileKeyInput = document.getElementById('profile-key');
 
 let encryptionKey = '';
 let myId = '';
@@ -91,6 +95,17 @@ const i18n = {
         toastImageTooLarge: (sizeMb) => `图片不能超过 ${sizeMb}MB`,
         toastImageFailed: '图片处理失败',
         toastErrorFallback: '操作失败',
+        profileEditTitle: '编辑当前身份',
+        profileModalTitle: '编辑身份',
+        profileModalSubtitle: '为当前身份设置昵称与加密密钥，只保存在本地浏览器',
+        profileNicknameLabel: '昵称',
+        profileNicknameHint: '会显示在消息上方和头像文字中',
+        profileNicknamePlaceholder: '输入一个你喜欢的昵称',
+        profileKeyLabel: '加密密钥',
+        profileKeyHint: '仅本地使用，不会上传服务器；同一个密钥的用户之间才能互相解密',
+        profileKeyPlaceholder: '为当前身份设置一个加密密钥',
+        profileCancel: '取消',
+        profileSave: '保存',
     },
     en: {
         title: 'Secure Chat',
@@ -117,6 +132,18 @@ const i18n = {
         toastImageTooLarge: (sizeMb) => `Image must be <= ${sizeMb}MB`,
         toastImageFailed: 'Image processing failed',
         toastErrorFallback: 'Operation failed',
+        profileEditTitle: 'Edit current profile',
+        profileModalTitle: 'Edit profile',
+        profileModalSubtitle: 'Configure nickname and encryption key for this profile. Stored only in this browser.',
+        profileNicknameLabel: 'Nickname',
+        profileNicknameHint: 'Shown above messages and inside avatar text',
+        profileNicknamePlaceholder: 'Enter a nickname you like',
+        profileKeyLabel: 'Encryption key',
+        profileKeyHint:
+            'Used only locally. Only users with the same key can decrypt each other’s messages.',
+        profileKeyPlaceholder: 'Set an encryption key for this profile',
+        profileCancel: 'Cancel',
+        profileSave: 'Save',
     },
 };
 
@@ -381,39 +408,6 @@ imageUpload.addEventListener('change', async (e) => {
     }
 });
 
-setKeyButton.addEventListener('click', () => {
-    encryptionKey = encryptionKeyInput.value;
-    encryptionKeyInput.value = '';
-    if (profiles[currentProfileId]) {
-        profiles[currentProfileId].encryptionKey = encryptionKey;
-        saveProfiles();
-    }
-    showToast(t('toastKeySet'), 'success');
-});
-
-if (nicknameInput) {
-    nicknameInput.addEventListener('change', (e) => {
-        const v = e.target.value.trim();
-        if (v) {
-            myNickname = v;
-            if (profiles[currentProfileId]) {
-                profiles[currentProfileId].nickname = v;
-                saveProfiles();
-            }
-        }
-    });
-    nicknameInput.addEventListener('blur', (e) => {
-        const v = e.target.value.trim();
-        if (v) {
-            myNickname = v;
-            if (profiles[currentProfileId]) {
-                profiles[currentProfileId].nickname = v;
-                saveProfiles();
-            }
-        }
-    });
-}
-
 socket.on('connect', () => {
     myId = socket.id;
     userColors[myId] = getRandomColor();
@@ -433,7 +427,7 @@ socket.on(EVENT_ERROR, (payload) => {
     showToast(payload.message || t('toastErrorFallback'), 'error');
 });
 
-// 初始化应用状态（主题、语言、身份）
+// 初始化应用状态（主题、语言、身份、弹窗）
 function initAppState() {
     loadProfiles();
 
@@ -446,10 +440,6 @@ function initAppState() {
     const profile = profiles[currentProfileId] || profiles['1'];
     myNickname = profile.nickname || myNickname;
     encryptionKey = profile.encryptionKey || encryptionKey;
-
-    if (nicknameInput && profile.nickname) {
-        nicknameInput.value = profile.nickname;
-    }
 
     initThemeAndLanguage();
 
@@ -485,9 +475,75 @@ function initAppState() {
             const p = profiles[currentProfileId] || { nickname: '', encryptionKey: '' };
             myNickname = p.nickname || `访客 ${currentProfileId}`;
             encryptionKey = p.encryptionKey || '';
-            if (nicknameInput) {
-                nicknameInput.value = p.nickname || '';
+        });
+    }
+
+    // 自动高度文本域
+    document.querySelectorAll('textarea[data-autoresize="true"]').forEach((el) => {
+        const resize = () => {
+            el.style.height = 'auto';
+            el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+        };
+        el.addEventListener('input', resize);
+        resize();
+    });
+
+    // 弹窗相关事件
+    if (profileEditBtn && profileModal && profileForm) {
+        const openModal = () => {
+            const p = profiles[currentProfileId] || { nickname: '', encryptionKey: '' };
+            if (profileNicknameInput) {
+                profileNicknameInput.value = p.nickname || '';
+                profileNicknameInput.dispatchEvent(new Event('input'));
             }
+            if (profileKeyInput) {
+                profileKeyInput.value = p.encryptionKey || '';
+                profileKeyInput.dispatchEvent(new Event('input'));
+            }
+            profileModal.classList.add('active');
+            profileModal.setAttribute('aria-hidden', 'false');
+        };
+
+        const closeModal = () => {
+            profileModal.classList.remove('active');
+            profileModal.setAttribute('aria-hidden', 'true');
+        };
+
+        profileEditBtn.addEventListener('click', openModal);
+
+        if (profileModalClose) {
+            profileModalClose.addEventListener('click', closeModal);
+        }
+        if (profileModalCancel) {
+            profileModalCancel.addEventListener('click', (e) => {
+                e.preventDefault();
+                closeModal();
+            });
+        }
+        profileModal.addEventListener('click', (e) => {
+            if (e.target === profileModal) {
+                closeModal();
+            }
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && profileModal.classList.contains('active')) {
+                closeModal();
+            }
+        });
+
+        profileForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const nickname = (profileNicknameInput && profileNicknameInput.value.trim()) || '';
+            const key = (profileKeyInput && profileKeyInput.value) || '';
+            if (profiles[currentProfileId]) {
+                profiles[currentProfileId].nickname = nickname || `访客 ${currentProfileId}`;
+                profiles[currentProfileId].encryptionKey = key;
+                saveProfiles();
+            }
+            myNickname = nickname || `访客 ${currentProfileId}`;
+            encryptionKey = key;
+            closeModal();
+            showToast(t('toastKeySet'), 'success');
         });
     }
 }

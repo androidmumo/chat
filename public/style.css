@@ -132,6 +132,12 @@ html[data-theme="dark"] body {
     gap: 4px;
 }
 
+.control-inline {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
 .control-label {
     font-size: 11px;
     color: var(--text-secondary);
@@ -158,6 +164,275 @@ html[data-theme="dark"] body {
 
 html[data-theme="dark"] .control-select {
     background: rgba(15, 15, 25, 0.9);
+}
+
+.control-icon-button {
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    border: 1px solid var(--glass-border-subtle);
+    background: rgba(255, 255, 255, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease, color 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.control-icon-button i {
+    font-size: 14px;
+}
+
+.control-icon-button:hover {
+    background: rgba(0, 122, 255, 0.08);
+    color: rgba(0, 122, 255, 0.95);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.control-icon-button:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.16);
+}
+
+html[data-theme="dark"] .control-icon-button {
+    background: rgba(15, 15, 25, 0.9);
+}
+
+/* 弹窗样式 */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.22s ease;
+}
+
+.modal-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.modal {
+    width: 100%;
+    max-width: 520px;
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.25);
+    padding: 18px 18px 16px;
+    backdrop-filter: blur(26px) saturate(180%);
+    -webkit-backdrop-filter: blur(26px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+html[data-theme="dark"] .modal {
+    background: rgba(12, 16, 28, 0.98);
+    border-color: rgba(148, 163, 184, 0.25);
+}
+
+.modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.modal-title-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.modal-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #2563eb 0%, #10b981 55%, #f97316 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10px 30px rgba(37, 99, 235, 0.35);
+}
+
+.modal-icon i {
+    color: #fff;
+    font-size: 20px;
+}
+
+.modal-title-text h2 {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--text-primary);
+}
+
+.modal-subtitle {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.modal-close {
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    border: none;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: background 0.18s ease, transform 0.15s ease, color 0.18s ease;
+}
+
+.modal-close:hover {
+    background: rgba(148, 163, 184, 0.12);
+    color: var(--text-primary);
+    transform: rotate(6deg);
+}
+
+.modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.field-label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+}
+
+.field-label-row label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.field-hint {
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
+.field-input-with-icon {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 18px;
+    background: rgba(248, 250, 252, 0.9);
+    border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+html[data-theme="dark"] .field-input-with-icon {
+    background: rgba(15, 23, 42, 0.9);
+    border-color: rgba(30, 64, 175, 0.7);
+}
+
+.field-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 2px 6px rgba(148, 163, 184, 0.35);
+}
+
+.field-icon i {
+    font-size: 12px;
+}
+
+html[data-theme="dark"] .field-icon {
+    background: rgba(15, 23, 42, 1);
+}
+
+.field-textarea {
+    flex: 1;
+    border: none;
+    resize: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--text-primary);
+    line-height: 1.4;
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+.field-textarea::placeholder {
+    color: var(--text-secondary);
+}
+
+.field-textarea:focus {
+    outline: none;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 4px;
+}
+
+.btn-primary,
+.btn-secondary {
+    min-width: 80px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: none;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease, color 0.2s ease;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #2563eb 0%, #0ea5e9 50%, #22c55e 100%);
+    color: #fff;
+    box-shadow: 0 8px 22px rgba(37, 99, 235, 0.4);
+}
+
+.btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 26px rgba(37, 99, 235, 0.45);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+}
+
+.btn-secondary {
+    background: rgba(148, 163, 184, 0.12);
+    color: var(--text-primary);
+}
+
+.btn-secondary:hover {
+    background: rgba(148, 163, 184, 0.2);
+}
+
+.btn-secondary:active {
+    background: rgba(148, 163, 184, 0.3);
 }
 
 /* 消息区域：透出背景 */
