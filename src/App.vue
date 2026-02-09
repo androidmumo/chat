@@ -1,243 +1,42 @@
 <template>
   <div class="chat-container">
-    <div class="chat-header">
-      <div class="chat-header-main">
-        <div class="chat-header-left">
-          <h1>{{ t('title') }}</h1>
-          <span class="chat-subtitle">{{ t('subtitle') }}</span>
-        </div>
-        <div class="chat-header-right">
-          <div class="chat-control-group">
-            <!-- 身份切换 -->
-            <div class="control-item">
-              <label class="control-label">{{ t('profileLabel') }}</label>
-              <div class="control-inline">
-                <select v-model="currentProfileId" class="control-select">
-                  <option v-for="p in profilesList" :key="p.id" :value="p.id">
-                    {{ p.nickname }}
-                  </option>
-                </select>
-                <button
-                  class="control-icon-button"
-                  type="button"
-                  :title="t('profileAddTitle')"
-                  @click="createProfile"
-                >
-                  <i class="fas fa-plus"></i>
-                </button>
-                <button
-                  class="control-icon-button"
-                  type="button"
-                  :title="t('profileEditTitle')"
-                  @click="openProfileModal"
-                >
-                  <i class="fas fa-user-astronaut"></i>
-                </button>
-              </div>
-            </div>
+    <HeaderBar
+      :profiles="profilesList"
+      :current-profile-id="currentProfileId"
+      :theme-mode="themeMode"
+      :lang="lang"
+      :t="t"
+      @update:currentProfileId="(id) => (currentProfileId = id)"
+      @update:themeMode="(val) => (themeMode = val)"
+      @update:lang="(val) => (lang = val)"
+      @create-profile="createProfile"
+      @edit-profile="openProfileModal"
+    />
 
-            <!-- 主题 -->
-            <div class="control-item">
-              <label class="control-label">{{ t('themeLabel') }}</label>
-              <select v-model="themeMode" class="control-select">
-                <option value="auto">{{ t('themeAuto') }}</option>
-                <option value="light">{{ t('themeLight') }}</option>
-                <option value="dark">{{ t('themeDark') }}</option>
-              </select>
-            </div>
+    <ChatMessages
+      :messages="messages"
+      :my-id="myId"
+      :get-avatar-text="getAvatarText"
+      :bubble-style="bubbleStyle"
+      :get-color-for-user="getColorForUser"
+    />
 
-            <!-- 语言 -->
-            <div class="control-item">
-              <label class="control-label">{{ t('langLabel') }}</label>
-              <select v-model="lang" class="control-select">
-                <option value="zh-CN">{{ t('langZh') }}</option>
-                <option value="en">{{ t('langEn') }}</option>
-              </select>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <ChatInput
+      v-model="textInput"
+      :t="t"
+      @send-text="sendTextFromChild"
+      @send-image="sendImageFromChild"
+    />
 
-    <!-- 消息区域 -->
-    <div class="chat-messages" ref="messagesEl">
-      <div
-        v-for="m in messages"
-        :key="m.id"
-        class="message"
-        :class="{ mine: m.userId === myId, others: m.userId !== myId }"
-      >
-        <div
-          class="avatar"
-          :style="{ backgroundColor: m.color || getColorForUser(m.userId) }"
-        >
-          {{ getAvatarText(m) }}
-        </div>
-        <div class="message-body">
-          <span v-if="m.nickname" class="message-nickname">
-            {{ m.nickname }}
-          </span>
-          <div
-            class="message-content"
-            :style="bubbleStyle(m)"
-          >
-            <template v-if="m.decryptedContent">
-              <img
-                v-if="m.type === 'image'"
-                class="message-image"
-                :src="m.decryptedContent"
-              />
-              <p
-                v-else
-                class="message-text"
-              >
-                {{ m.decryptedContent }}
-              </p>
-            </template>
-            <p v-else class="message-text encrypted">
-              (Encrypted message)
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 底部输入区 -->
-    <div class="chat-input-container">
-      <form class="chat-input" @submit.prevent="sendText">
-        <input
-          id="chat-input"
-          v-model="textInput"
-          type="text"
-          autocomplete="off"
-          :placeholder="t('inputPlaceholder')"
-        />
-        <label class="image-upload-label" :title="t('sendImageTitle')">
-          <i class="fas fa-photo-film"></i>
-          <input
-            ref="imageInputEl"
-            type="file"
-            accept="image/*"
-            style="display: none"
-            @change="onImageChange"
-          />
-        </label>
-        <button type="submit" :title="t('sendTextTitle')">
-          <i class="fas fa-arrow-up"></i>
-        </button>
-      </form>
-    </div>
-
-    <!-- 身份配置弹窗 -->
-    <div
-      class="modal-overlay"
-      :class="{ active: profileModalVisible }"
-      aria-hidden="true"
-      @click.self="closeProfileModal"
-    >
-      <div class="modal">
-        <div class="modal-header">
-          <div class="modal-title-group">
-            <div class="modal-icon">
-              <i class="fas fa-user-circle"></i>
-            </div>
-            <div class="modal-title-text">
-              <h2>{{ t('profileModalTitle') }}</h2>
-              <p class="modal-subtitle">
-                {{ t('profileModalSubtitle') }}
-              </p>
-            </div>
-          </div>
-          <button class="modal-close" type="button" @click="closeProfileModal">
-            <i class="fas fa-xmark"></i>
-          </button>
-        </div>
-
-        <form class="modal-body" @submit.prevent="saveProfile">
-          <!-- 昵称 -->
-          <div class="field-group">
-            <div class="field-label-row">
-              <label>{{ t('profileNicknameLabel') }}</label>
-              <span class="field-hint">{{ t('profileNicknameHint') }}</span>
-            </div>
-            <div class="field-input-with-icon">
-              <span class="field-icon">
-                <i class="fas fa-user"></i>
-              </span>
-              <textarea
-                v-model="editingProfile.nickname"
-                class="field-textarea"
-                rows="1"
-              ></textarea>
-            </div>
-          </div>
-
-          <!-- 加密密钥 -->
-          <div class="field-group">
-            <div class="field-label-row">
-              <label>{{ t('profileKeyLabel') }}</label>
-              <span class="field-hint">{{ t('profileKeyHint') }}</span>
-            </div>
-            <div class="field-input-with-icon">
-              <span class="field-icon">
-                <i class="fas fa-lock"></i>
-              </span>
-              <textarea
-                v-model="editingProfile.encryptionKey"
-                class="field-textarea"
-                rows="1"
-              ></textarea>
-            </div>
-          </div>
-
-          <!-- 身份颜色 -->
-          <div class="field-group">
-            <div class="field-label-row">
-              <label>{{ t('profileColorLabel') }}</label>
-              <span class="field-hint">{{ t('profileColorHint') }}</span>
-            </div>
-            <div class="field-input-with-icon field-color-row">
-              <span class="field-icon">
-                <i class="fas fa-palette"></i>
-              </span>
-              <textarea
-                v-model="editingProfile.color"
-                class="field-textarea"
-                rows="1"
-              ></textarea>
-              <input
-                type="color"
-                class="field-color-input"
-                v-model="editingProfile.color"
-              />
-            </div>
-          </div>
-
-          <div class="modal-footer">
-            <button
-              v-if="profilesList.length > 1"
-              type="button"
-              class="btn-secondary"
-              @click="deleteCurrentProfile"
-            >
-              {{ t('profileDelete') }}
-            </button>
-            <div style="flex: 1"></div>
-            <button type="button" class="btn-secondary" @click="closeProfileModal">
-              {{ t('profileCancel') }}
-            </button>
-            <button type="submit" class="btn-primary">
-              {{ t('profileSave') }}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <!-- Toast 容器 -->
-    <div v-if="toast.visible" :class="['toast', `toast-${toast.type}`, 'show']">
-      {{ toast.message }}
-    </div>
+    <ProfileDialog
+      v-if="currentProfile"
+      v-model:visible="profileModalVisible"
+      :profile="currentProfile"
+      :profiles-count="profilesList.length"
+      :t="t"
+      @save="saveProfileFromChild"
+      @delete="deleteCurrentProfile"
+    />
   </div>
 </template>
 
@@ -245,6 +44,12 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { io } from 'socket.io-client';
 import CryptoJS from 'crypto-js';
+import { ElMessage } from 'element-plus';
+
+import HeaderBar from './components/HeaderBar.vue';
+import ChatMessages from './components/ChatMessages.vue';
+import ChatInput from './components/ChatInput.vue';
+import ProfileDialog from './components/ProfileDialog.vue';
 
 const MSG_TYPE_TEXT = 'text';
 const MSG_TYPE_IMAGE = 'image';
@@ -375,6 +180,11 @@ function showToast(message, type = 'info') {
   toast.message = message;
   toast.type = type;
   toast.visible = true;
+  ElMessage({
+    message,
+    type: type === 'error' ? 'error' : type === 'success' ? 'success' : 'info',
+    duration: 2500,
+  });
   setTimeout(() => {
     toast.visible = false;
   }, 2500);
@@ -435,10 +245,7 @@ function decryptMessage(encrypted, key) {
   }
 }
 
-async function onImageChange(e) {
-  const file = e.target.files?.[0];
-  e.target.value = '';
-  if (!file) return;
+async function sendImageFromChild(file) {
   if (!file.type.startsWith('image/')) {
     showToast(t('toastSelectImage'), 'error');
     return;
@@ -496,28 +303,21 @@ function compressImage(file) {
   });
 }
 
-function sendText() {
-  const text = textInput.value.trim();
-  if (!text) return;
+function sendTextFromChild(text) {
+  const value = text.trim();
+  if (!value) return;
   const profile = currentProfile.value;
   if (!profile) return;
-  const encrypted = encryptMessage(text, profile.encryptionKey || '');
+  const encrypted = encryptMessage(value, profile.encryptionKey || '');
   socket.emit('chat message', {
     type: MSG_TYPE_TEXT,
     content: encrypted,
     nickname: profile.nickname,
     color: profile.color,
   });
-  textInput.value = '';
 }
 
 function openProfileModal() {
-  const p = currentProfile.value;
-  if (!p) return;
-  editingProfile.id = p.id;
-  editingProfile.nickname = p.nickname;
-  editingProfile.encryptionKey = p.encryptionKey;
-  editingProfile.color = p.color || '#4F46E5';
   profileModalVisible.value = true;
 }
 
@@ -525,17 +325,17 @@ function closeProfileModal() {
   profileModalVisible.value = false;
 }
 
-function saveProfile() {
-  const id = editingProfile.id;
+function saveProfileFromChild(payload) {
+  const { id, nickname, encryptionKey, color } = payload;
   if (!id || !profiles[id]) return;
-  const nickname = editingProfile.nickname.trim() || `访客 ${id}`;
-  let color = editingProfile.color.trim() || '#4F46E5';
-  if (!/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(color)) {
-    color = '#4F46E5';
+  const name = (nickname || '').trim() || `访客 ${id}`;
+  let c = (color || '').trim() || '#4F46E5';
+  if (!/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(c)) {
+    c = '#4F46E5';
   }
-  profiles[id].nickname = nickname;
-  profiles[id].encryptionKey = editingProfile.encryptionKey || '';
-  profiles[id].color = color;
+  profiles[id].nickname = name;
+  profiles[id].encryptionKey = encryptionKey || '';
+  profiles[id].color = c;
   currentProfileId.value = id;
   persistProfiles();
   profileModalVisible.value = false;
