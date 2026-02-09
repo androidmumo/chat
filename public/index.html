@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,17 +11,77 @@
 <body>
     <div class="chat-container">
         <div class="chat-header">
-            <h1>Secure Chat</h1>
+            <div class="chat-header-main">
+                <div class="chat-header-left">
+                    <h1 data-i18n="title">Secure Chat</h1>
+                    <span class="chat-subtitle" data-i18n="subtitle">轻量级端到端加密聊天室</span>
+                </div>
+                <div class="chat-header-right">
+                    <div class="chat-control-group">
+                        <div class="control-item">
+                            <label for="profile-select" class="control-label" data-i18n="profileLabel">身份</label>
+                            <select id="profile-select" class="control-select">
+                                <option value="1" data-i18n="profile1">身份 1</option>
+                                <option value="2" data-i18n="profile2">身份 2</option>
+                                <option value="3" data-i18n="profile3">身份 3</option>
+                            </select>
+                        </div>
+                        <div class="control-item">
+                            <label for="theme-select" class="control-label" data-i18n="themeLabel">主题</label>
+                            <select id="theme-select" class="control-select">
+                                <option value="auto" data-i18n="themeAuto">跟随系统</option>
+                                <option value="light" data-i18n="themeLight">浅色</option>
+                                <option value="dark" data-i18n="themeDark">深色</option>
+                            </select>
+                        </div>
+                        <div class="control-item">
+                            <label for="lang-select" class="control-label" data-i18n="langLabel">语言</label>
+                            <select id="lang-select" class="control-select">
+                                <option value="zh-CN" data-i18n="langZh">中文</option>
+                                <option value="en" data-i18n="langEn">English</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
         <div class="chat-messages" id="messages"></div>
         <div class="chat-input-container">
             <div class="encryption-controls">
-                <input type="text" id="nickname" placeholder="昵称（可选）" maxlength="20" title="设置后将在消息中显示">
-                <input type="text" id="encryption-key" placeholder="加密密钥">
-                <button id="set-key" type="button" title="设置加密密钥"><i class="fas fa-key"></i></button>
+                <input
+                    type="text"
+                    id="nickname"
+                    maxlength="20"
+                    data-i18n-placeholder="nicknamePlaceholder"
+                    data-i18n-title="nicknameTitle"
+                    placeholder="昵称（可选）"
+                    title="设置后将在消息中显示"
+                >
+                <input
+                    type="text"
+                    id="encryption-key"
+                    data-i18n-placeholder="encryptionKeyPlaceholder"
+                    data-i18n-title="encryptionKeyTitle"
+                    placeholder="加密密钥"
+                    title="设置后本地消息将使用该密钥加密"
+                >
+                <button
+                    id="set-key"
+                    type="button"
+                    data-i18n-title="setKeyTitle"
+                    title="设置加密密钥"
+                >
+                    <i class="fas fa-key"></i>
+                </button>
             </div>
             <form id="chat-form" class="chat-input">
-                <input id="chat-input" type="text" placeholder="Type a message..." autocomplete="off">
+                <input
+                    id="chat-input"
+                    type="text"
+                    autocomplete="off"
+                    data-i18n-placeholder="inputPlaceholder"
+                    placeholder="Type a message..."
+                >
                 <label for="image-upload" class="image-upload-label">
                     <i class="fas fa-image"></i>
                 </label>
