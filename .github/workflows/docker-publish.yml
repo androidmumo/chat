@@ -1,0 +1,51 @@
+# 在 GitHub 发 Release 时自动构建并推送 Docker 镜像到 Docker Hub (hub.docker.com)
+# 使用：Releases -> Create a new release -> 选择或新建 tag（建议 v1.0.0）-> Publish release
+# 镜像将推送为 <DOCKERHUB_USERNAME>/<仓库名>:<版本> 和 :latest
+# 需在仓库 Settings -> Secrets and variables -> Actions 中配置：DOCKERHUB_USERNAME、DOCKERHUB_TOKEN
+
+name: Build and push Docker image
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
