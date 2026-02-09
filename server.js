@@ -51,6 +51,7 @@ io.on('connection', (socket) => {
             content: msg.content,
             userId: socket.id,
             nickname: msg.nickname || null,
+            color: typeof msg.color === 'string' ? msg.color : null,
         });
     });
 

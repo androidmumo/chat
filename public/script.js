@@ -22,6 +22,7 @@ const imageUpload = document.getElementById('image-upload');
 const profileSelect = document.getElementById('profile-select');
 const themeSelect = document.getElementById('theme-select');
 const langSelect = document.getElementById('lang-select');
+const profileAddBtn = document.getElementById('profile-add-btn');
 const profileEditBtn = document.getElementById('profile-edit-btn');
 const profileModal = document.getElementById('profile-modal');
 const profileModalClose = document.getElementById('profile-modal-close');
@@ -29,18 +30,19 @@ const profileModalCancel = document.getElementById('profile-modal-cancel');
 const profileForm = document.getElementById('profile-form');
 const profileNicknameInput = document.getElementById('profile-nickname');
 const profileKeyInput = document.getElementById('profile-key');
+const profileColorInput = document.getElementById('profile-color');
+const profileColorPicker = document.getElementById('profile-color-picker');
 
 let encryptionKey = '';
 let myId = '';
 let myNickname = '访客';
+let myColor = '#4F46E5';
 let currentProfileId = '1';
 let themeMode = THEME_AUTO;
 let currentLang = 'zh-CN';
 const userColors = {};
 let profiles = {
-    1: { nickname: '访客 1', encryptionKey: '' },
-    2: { nickname: '访客 2', encryptionKey: '' },
-    3: { nickname: '访客 3', encryptionKey: '' },
+    1: { nickname: '访客', encryptionKey: '', color: '#4F46E5' },
 };
 
 function loadProfiles() {
@@ -49,11 +51,15 @@ function loadProfiles() {
         if (saved) {
             const parsed = JSON.parse(saved);
             if (parsed && typeof parsed === 'object') {
-                profiles = {
-                    1: { nickname: '访客 1', encryptionKey: '', ...(parsed['1'] || {}) },
-                    2: { nickname: '访客 2', encryptionKey: '', ...(parsed['2'] || {}) },
-                    3: { nickname: '访客 3', encryptionKey: '', ...(parsed['3'] || {}) },
-                };
+                profiles = {};
+                Object.keys(parsed).forEach((id) => {
+                    const p = parsed[id] || {};
+                    profiles[id] = {
+                        nickname: p.nickname || '访客',
+                        encryptionKey: p.encryptionKey || '',
+                        color: p.color || getRandomColor(),
+                    };
+                });
             }
         }
     } catch (e) {
@@ -106,6 +112,10 @@ const i18n = {
         profileKeyPlaceholder: '为当前身份设置一个加密密钥',
         profileCancel: '取消',
         profileSave: '保存',
+        profileAddTitle: '创建新身份',
+        profileColorLabel: '身份颜色',
+        profileColorHint: '用于头像和自己消息的气泡颜色',
+        profileColorPlaceholder: '#4F46E5',
     },
     en: {
         title: 'Secure Chat',
@@ -144,6 +154,10 @@ const i18n = {
         profileKeyPlaceholder: 'Set an encryption key for this profile',
         profileCancel: 'Cancel',
         profileSave: 'Save',
+        profileAddTitle: 'Create new profile',
+        profileColorLabel: 'Profile color',
+        profileColorHint: 'Used for avatar and your own message bubbles',
+        profileColorPlaceholder: '#4F46E5',
     },
 };
 
@@ -315,10 +329,14 @@ function createMessageElement(msg, isImage = false, isMine = false) {
 
     const avatarDiv = document.createElement('div');
     avatarDiv.className = 'avatar';
+    const msgColor =
+        typeof msg.color === 'string' && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(msg.color)
+            ? msg.color
+            : null;
     if (!userColors[msg.userId]) {
-        userColors[msg.userId] = getRandomColor();
+        userColors[msg.userId] = msgColor || getRandomColor();
     }
-    avatarDiv.style.backgroundColor = userColors[msg.userId];
+    avatarDiv.style.backgroundColor = msgColor || userColors[msg.userId];
     avatarDiv.textContent = getAvatarText(msg);
     messageDiv.appendChild(avatarDiv);
 
@@ -335,6 +353,23 @@ function createMessageElement(msg, isImage = false, isMine = false) {
 
     const contentDiv = document.createElement('div');
     contentDiv.className = 'message-content';
+
+    // 如果消息携带身份颜色，则对自己消息的气泡应用该颜色
+    if (msgColor && isMine) {
+        contentDiv.style.backgroundColor = msgColor;
+        // 简单对比度处理：根据亮度决定文字颜色
+        const hex = msgColor.replace('#', '');
+        const num = parseInt(hex.length === 3 ? hex.split('').map((c) => c + c).join('') : hex, 16);
+        const r = (num >> 16) & 255;
+        const g = (num >> 8) & 255;
+        const b = num & 255;
+        const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+        if (luminance < 0.6) {
+            contentDiv.style.color = '#fff';
+        } else {
+            contentDiv.style.color = '#111827';
+        }
+    }
 
     const decryptedContent = decryptMessage(msg.content);
 
@@ -371,6 +406,7 @@ form.addEventListener('submit', (e) => {
             type: MSG_TYPE_TEXT,
             content: encryptedMessage,
             nickname: myNickname,
+            color: myColor,
         });
         input.value = '';
     }
@@ -399,6 +435,7 @@ imageUpload.addEventListener('change', async (e) => {
             type: MSG_TYPE_IMAGE,
             content: encryptedImage,
             nickname: myNickname,
+            color: myColor,
         });
     } catch (err) {
         showToast(err.message || t('toastImageFailed'), 'error');
@@ -431,15 +468,43 @@ socket.on(EVENT_ERROR, (payload) => {
 function initAppState() {
     loadProfiles();
 
-    // 初始 profile 选择
+    // 没有任何身份时，创建一个默认访客身份
+    const profileIds = Object.keys(profiles);
+    if (profileIds.length === 0) {
+        profiles['1'] = { nickname: '访客', encryptionKey: '', color: '#4F46E5' };
+    }
+    currentProfileId = profileIds[0] || '1';
+
+    // 渲染身份下拉选项
     if (profileSelect) {
-        currentProfileId = profileSelect.value || '1';
+        const renderProfiles = () => {
+            profileSelect.innerHTML = '';
+            Object.entries(profiles).forEach(([id, p]) => {
+                const opt = document.createElement('option');
+                opt.value = id;
+                opt.textContent = p.nickname || `访客 ${id}`;
+                profileSelect.appendChild(opt);
+            });
+            profileSelect.value = currentProfileId;
+        };
+        renderProfiles();
+
+        profileSelect.addEventListener('change', (e) => {
+            const newId = e.target.value || currentProfileId;
+            if (!profiles[newId]) return;
+            currentProfileId = newId;
+            const p = profiles[currentProfileId];
+            myNickname = p.nickname || `访客 ${currentProfileId}`;
+            encryptionKey = p.encryptionKey || '';
+            myColor = p.color || '#4F46E5';
+        });
     }
 
-    // 使用当前 profile 初始化昵称和加密密钥
+    // 使用当前 profile 初始化昵称、密钥、颜色
     const profile = profiles[currentProfileId] || profiles['1'];
     myNickname = profile.nickname || myNickname;
     encryptionKey = profile.encryptionKey || encryptionKey;
+    myColor = profile.color || myColor;
 
     initThemeAndLanguage();
 
@@ -468,16 +533,6 @@ function initAppState() {
         });
     }
 
-    if (profileSelect) {
-        profileSelect.addEventListener('change', (e) => {
-            const newId = e.target.value || '1';
-            currentProfileId = newId;
-            const p = profiles[currentProfileId] || { nickname: '', encryptionKey: '' };
-            myNickname = p.nickname || `访客 ${currentProfileId}`;
-            encryptionKey = p.encryptionKey || '';
-        });
-    }
-
     // 自动高度文本域
     document.querySelectorAll('textarea[data-autoresize="true"]').forEach((el) => {
         const resize = () => {
@@ -500,6 +555,11 @@ function initAppState() {
                 profileKeyInput.value = p.encryptionKey || '';
                 profileKeyInput.dispatchEvent(new Event('input'));
             }
+            if (profileColorInput && profileColorPicker) {
+                const color = p.color || '#4F46E5';
+                profileColorInput.value = color;
+                profileColorPicker.value = color;
+            }
             profileModal.classList.add('active');
             profileModal.setAttribute('aria-hidden', 'false');
         };
@@ -510,6 +570,35 @@ function initAppState() {
         };
 
         profileEditBtn.addEventListener('click', openModal);
+
+        if (profileAddBtn) {
+            profileAddBtn.addEventListener('click', () => {
+                // 创建新身份 id
+                const ids = Object.keys(profiles).map((id) => Number(id)).filter((n) => !Number.isNaN(n));
+                const nextId = (ids.length ? Math.max(...ids) + 1 : 1).toString();
+                const baseColor = getRandomColor();
+                profiles[nextId] = {
+                    nickname: `访客 ${nextId}`,
+                    encryptionKey: '',
+                    color: baseColor,
+                };
+                saveProfiles();
+                currentProfileId = nextId;
+                myNickname = profiles[nextId].nickname;
+                encryptionKey = '';
+                myColor = baseColor;
+
+                if (profileSelect) {
+                    const opt = document.createElement('option');
+                    opt.value = nextId;
+                    opt.textContent = profiles[nextId].nickname;
+                    profileSelect.appendChild(opt);
+                    profileSelect.value = nextId;
+                }
+
+                openModal();
+            });
+        }
 
         if (profileModalClose) {
             profileModalClose.addEventListener('click', closeModal);
@@ -535,13 +624,19 @@ function initAppState() {
             e.preventDefault();
             const nickname = (profileNicknameInput && profileNicknameInput.value.trim()) || '';
             const key = (profileKeyInput && profileKeyInput.value) || '';
+            let color = (profileColorInput && profileColorInput.value.trim()) || '#4F46E5';
+            if (!/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(color)) {
+                color = '#4F46E5';
+            }
             if (profiles[currentProfileId]) {
                 profiles[currentProfileId].nickname = nickname || `访客 ${currentProfileId}`;
                 profiles[currentProfileId].encryptionKey = key;
+                profiles[currentProfileId].color = color;
                 saveProfiles();
             }
             myNickname = nickname || `访客 ${currentProfileId}`;
             encryptionKey = key;
+            myColor = color;
             closeModal();
             showToast(t('toastKeySet'), 'success');
         });
