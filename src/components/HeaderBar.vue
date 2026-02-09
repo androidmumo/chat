@@ -12,6 +12,7 @@
             <span class="control-label">{{ t('profileLabel') }}</span>
             <div class="control-inline">
               <el-select
+                ref="profileSelect"
                 v-model="localProfileId"
                 class="control-select"
                 size="small"
@@ -23,25 +24,32 @@
                   :label="p.nickname"
                   :value="p.id"
                 />
+                <template #footer>
+                  <div style="padding: 8px; border-top: 1px solid var(--glass-border-subtle); display: flex; gap: 6px;">
+                    <el-button
+                      size="small"
+                      type="primary"
+                      text
+                      style="flex: 1;"
+                      :title="t('profileAddTitle')"
+                      @click="handleCreateProfile"
+                    >
+                      <fa icon="user-plus" style="margin-right: 4px;" />
+                      {{ t('profileAddTitle') }}
+                    </el-button>
+                    <el-button
+                      size="small"
+                      text
+                      style="flex: 1;"
+                      :title="t('profileEditTitle')"
+                      @click="handleEditProfile"
+                    >
+                      <fa icon="user-pen" style="margin-right: 4px;" />
+                      {{ t('profileEditTitle') }}
+                    </el-button>
+                  </div>
+                </template>
               </el-select>
-              <el-button
-                circle
-                size="small"
-                class="control-icon-button"
-                :title="t('profileAddTitle')"
-                @click="$emit('create-profile')"
-              >
-                <fa icon="user-plus" />
-              </el-button>
-              <el-button
-                circle
-                size="small"
-                class="control-icon-button"
-                :title="t('profileEditTitle')"
-                @click="$emit('edit-profile')"
-              >
-                <fa icon="user-pen" />
-              </el-button>
             </div>
           </div>
 
@@ -116,6 +124,7 @@ const emit = defineEmits([
 const localProfileId = ref(props.currentProfileId);
 const localTheme = ref(props.themeMode);
 const localLang = ref(props.lang);
+const profileSelect = ref(null);
 
 watch(
   () => props.currentProfileId,
@@ -140,6 +149,16 @@ watch(
 
 function onProfileChange(val) {
   emit('update:currentProfileId', val);
+}
+
+function handleCreateProfile() {
+  profileSelect.value?.blur();
+  emit('create-profile');
+}
+
+function handleEditProfile() {
+  profileSelect.value?.blur();
+  emit('edit-profile');
 }
 </script>
 

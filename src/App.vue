@@ -142,6 +142,7 @@ const myId = ref('');
 const textInput = ref('');
 
 const profileModalVisible = ref(false);
+const isCreatingNewProfile = ref(false);
 const editingProfile = reactive({
   id: null,
   nickname: '',
@@ -321,10 +322,6 @@ function openProfileModal() {
   profileModalVisible.value = true;
 }
 
-function closeProfileModal() {
-  profileModalVisible.value = false;
-}
-
 function saveProfileFromChild(payload) {
   const { id, nickname, encryptionKey, color } = payload;
   if (!id || !profiles[id]) return;
@@ -339,6 +336,7 @@ function saveProfileFromChild(payload) {
   currentProfileId.value = id;
   persistProfiles();
   profileModalVisible.value = false;
+  isCreatingNewProfile.value = false;
   showToast(t('toastKeySet'), 'success');
 }
 
@@ -350,7 +348,7 @@ function deleteCurrentProfile() {
   const remaining = profilesList.value;
   currentProfileId.value = remaining[0].id;
   persistProfiles();
-  closeProfileModal();
+  profileModalVisible.value = false;
 }
 
 function createProfile() {
@@ -365,7 +363,7 @@ function createProfile() {
     color,
   };
   currentProfileId.value = nextId;
-  persistProfiles();
+  isCreatingNewProfile.value = true;
   openProfileModal();
 }
 
@@ -418,6 +416,21 @@ function applyTheme() {
   }
   document.documentElement.setAttribute('data-theme', effective);
 }
+
+// 监听弹窗关闭事件
+watch(
+  () => profileModalVisible.value,
+  (visible) => {
+    if (!visible && isCreatingNewProfile.value && currentProfileId.value) {
+      const id = currentProfileId.value;
+      delete profiles[id];
+      const remaining = profilesList.value;
+      currentProfileId.value = remaining.length > 0 ? remaining[0].id : null;
+      persistProfiles();
+      isCreatingNewProfile.value = false;
+    }
+  },
+);
 
 onMounted(() => {
   // 语言
