@@ -199,6 +199,11 @@ html[data-theme="dark"] .control-select {
     font-size: 14px;
 }
 
+.control-icon-button svg {
+    width: 14px;
+    height: 14px;
+}
+
 .control-icon-button:hover {
     background: rgba(0, 122, 255, 0.08);
     color: rgba(0, 122, 255, 0.95);
@@ -317,6 +322,26 @@ html[data-theme="dark"] .control-icon-button {
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
 }
 
+.attachment-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: rgba(0, 122, 255, 1);
+    text-decoration: none;
+    font-weight: 600;
+    padding: 6px 10px;
+    border-radius: var(--radius-pill);
+    border: 1px solid rgba(0, 122, 255, 0.25);
+    background: rgba(0, 122, 255, 0.08);
+    transition: transform 0.15s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.attachment-link:hover {
+    background: rgba(0, 122, 255, 0.14);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.18);
+}
+
 .encrypted {
     font-style: italic;
     color: var(--text-secondary);
@@ -379,6 +404,11 @@ html[data-theme="dark"] .control-icon-button {
 
 .chat-input-icon-btn i {
     font-size: 18px;
+}
+
+.chat-input-icon-btn svg {
+    width: 18px;
+    height: 18px;
 }
 
 .chat-input-icon-btn:hover {

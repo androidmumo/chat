@@ -26,6 +26,7 @@
       :t="t"
       @send-text="sendTextFromChild"
       @send-image="sendImageFromChild"
+      @send-attachment="sendAttachmentFromChild"
     />
 
     <ProfileDialog
@@ -53,6 +54,7 @@ import ProfileDialog from './components/ProfileDialog.vue';
 
 const MSG_TYPE_TEXT = 'text';
 const MSG_TYPE_IMAGE = 'image';
+const MSG_TYPE_ATTACHMENT = 'attachment';
 
 const THEME_KEY = 'securechat_theme';
 const LANG_KEY = 'securechat_lang';
@@ -277,6 +279,57 @@ async function sendImageFromChild(file) {
   }
 }
 
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error(t('toastImageFailed')));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function sendAttachmentFromChild(file) {
+  if (!file) return;
+  const profile = currentProfile.value;
+  if (!profile) return;
+
+  try {
+    // 读取为 dataURL（包含 base64），再做端到端 AES 加密后上传
+    const dataUrl = await fileToDataUrl(file);
+    const encrypted = encryptMessage(dataUrl, profile.encryptionKey || '');
+
+    const formData = new FormData();
+    formData.append(
+      'encrypted',
+      new Blob([encrypted], { type: 'text/plain' }),
+      `${file.name}.enc`,
+    );
+
+    const resp = await fetch('/api/attachments', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!resp.ok) {
+      const text = await resp.text().catch(() => '');
+      throw new Error(text || 'upload failed');
+    }
+
+    const data = await resp.json();
+    socket.emit('chat message', {
+      type: MSG_TYPE_ATTACHMENT,
+      attachmentId: data.attachmentId,
+      nickname: profile.nickname,
+      color: profile.color,
+      mimeType: file.type || 'application/octet-stream',
+      filename: file.name,
+      size: file.size,
+    });
+  } catch (err) {
+    showToast(err?.message || t('toastErrorFallback'), 'error');
+  }
+}
+
 function sendTextFromChild(text) {
   const value = text.trim();
   if (!value) return;
@@ -438,8 +491,32 @@ onMounted(() => {
     myId.value = socket.id;
   });
 
-  socket.on('chat message', (msg) => {
+  socket.on('chat message', async (msg) => {
     const profileKey = currentProfile.value?.encryptionKey || '';
+
+    if (msg.type === MSG_TYPE_ATTACHMENT) {
+      try {
+        const resp = await fetch(`/api/attachments/${encodeURIComponent(msg.attachmentId)}`);
+        if (!resp.ok) throw new Error('附件拉取失败');
+        const encryptedText = await resp.text();
+        const decryptedContent = decryptMessage(encryptedText, profileKey);
+        messages.value.push({
+          id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+          type: msg.type,
+          decryptedContent,
+          userId: msg.userId,
+          nickname: msg.nickname,
+          color: msg.color,
+          mimeType: msg.mimeType,
+          attachmentFilename: msg.filename,
+        });
+        nextTickScroll();
+      } catch (e) {
+        showToast(e?.message || t('toastErrorFallback'), 'error');
+      }
+      return;
+    }
+
     const decryptedContent = decryptMessage(msg.content, profileKey);
     messages.value.push({
       id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,

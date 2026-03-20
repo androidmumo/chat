@@ -22,10 +22,22 @@
         >
           <template v-if="m.decryptedContent">
             <img
-              v-if="m.type === 'image'"
+              v-if="m.type === 'image' || (m.type === 'attachment' && m.mimeType && m.mimeType.startsWith('image/'))"
               class="message-image"
               :src="m.decryptedContent"
             />
+            <p
+              v-else-if="m.type === 'attachment'"
+              class="message-text"
+            >
+              <a
+                class="attachment-link"
+                :href="m.decryptedContent"
+                :download="m.attachmentFilename || 'attachment'"
+              >
+                {{ m.attachmentFilename || '附件' }}
+              </a>
+            </p>
             <p
               v-else
               class="message-text"

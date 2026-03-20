@@ -21,6 +21,15 @@
         </el-button>
         <el-button
           circle
+          class="chat-input-icon-btn"
+          :title="'发送附件'"
+          @click="triggerAttachment"
+          text
+        >
+          <fa icon="paperclip" />
+        </el-button>
+        <el-button
+          circle
           class="chat-input-icon-btn chat-input-send-btn"
           type="primary"
           :title="t('sendTextTitle')"
@@ -36,6 +45,13 @@
       accept="image/*"
       style="display: none"
       @change="onImageChange"
+    />
+    <input
+      ref="attachmentFileInput"
+      type="file"
+      accept="*/*"
+      style="display: none"
+      @change="onAttachmentChange"
     />
   </div>
 </template>
@@ -54,10 +70,11 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['update:modelValue', 'send-text', 'send-image']);
+const emit = defineEmits(['update:modelValue', 'send-text', 'send-image', 'send-attachment']);
 
 const innerValue = ref(props.modelValue);
 const fileInput = ref(null);
+const attachmentFileInput = ref(null);
 
 watch(
   () => props.modelValue,
@@ -83,11 +100,24 @@ function triggerImage() {
   }
 }
 
+function triggerAttachment() {
+  if (attachmentFileInput.value) {
+    attachmentFileInput.value.click();
+  }
+}
+
 function onImageChange(e) {
   const file = e.target.files?.[0];
   e.target.value = '';
   if (!file) return;
   emit('send-image', file);
+}
+
+function onAttachmentChange(e) {
+  const file = e.target.files?.[0];
+  e.target.value = '';
+  if (!file) return;
+  emit('send-attachment', file);
 }
 </script>
 

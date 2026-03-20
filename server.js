@@ -1,5 +1,8 @@
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
+const crypto = require('crypto');
+const multer = require('multer');
 const app = express();
 const http = require('http').createServer(app);
 const { Server } = require('socket.io');
@@ -10,8 +13,73 @@ app.use(express.json({ limit: '100kb' }));
 const distPath = path.join(__dirname, 'dist');
 app.use(express.static(distPath));
 
-// Socket.IO：单条消息最大 500KB，防止大图拖垮内存
-const io = new Server(http, { maxHttpBufferSize: 500 * 1024 });
+// ========== 附件上传/拉取（服务端中转） ==========
+// 说明：为了支持“不要压缩图片/支持任意文件”，上传走 HTTP，而不是把大 payload 直接塞进 Socket.IO。
+const UPLOAD_DIR = path.join(__dirname, 'uploads');
+if (!fs.existsSync(UPLOAD_DIR)) {
+    fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+}
+
+// 24 小时清理一次（避免附件无限堆积）
+const ATTACHMENT_TTL_MS = 24 * 60 * 60 * 1000;
+setInterval(() => {
+    try {
+        const files = fs.readdirSync(UPLOAD_DIR);
+        const now = Date.now();
+        files.forEach((name) => {
+            const filePath = path.join(UPLOAD_DIR, name);
+            const stat = fs.statSync(filePath);
+            if (now - stat.mtimeMs > ATTACHMENT_TTL_MS) {
+                fs.unlinkSync(filePath);
+            }
+        });
+    } catch (e) {
+        // ignore cleanup errors
+    }
+}, 10 * 60 * 1000);
+
+const attachmentStorage = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, UPLOAD_DIR),
+    filename: (req, file, cb) => {
+        const id = crypto.randomUUID ? crypto.randomUUID() : crypto.randomBytes(16).toString('hex');
+        cb(null, `${id}.enc`);
+    },
+});
+
+const uploadAttachment = multer({
+    storage: attachmentStorage,
+    // 上传的是“加密后的字符串/二进制”，体积可能较原文件更大
+    limits: { fileSize: 60 * 1024 * 1024 }, // 60MB
+});
+
+app.post('/api/attachments', uploadAttachment.single('encrypted'), (req, res) => {
+    if (!req.file) {
+        res.status(400).json({ error: 'missing encrypted field' });
+        return;
+    }
+    res.json({ attachmentId: req.file.filename });
+});
+
+app.get('/api/attachments/:id', (req, res) => {
+    const id = String(req.params.id || '');
+    if (!id) {
+        res.status(400).send('missing id');
+        return;
+    }
+    // 防止路径穿越
+    const safeName = path.basename(id);
+    const filePath = path.join(UPLOAD_DIR, safeName);
+    if (!fs.existsSync(filePath)) {
+        res.status(404).send('not found');
+        return;
+    }
+    res.sendFile(filePath);
+});
+
+// Socket.IO：单条消息最大 10MB
+// 说明：未压缩大图 + Base64 + AES 加密后 payload 会显著增大
+// 为了保证“不要压缩图片”仍可发送，这里需要提高上限。
+const io = new Server(http, { maxHttpBufferSize: 10 * 1024 * 1024 });
 
 // 简单限流：每个 socket 每分钟最多 60 条消息
 const RATE_WINDOW_MS = 60 * 1000;
@@ -29,12 +97,18 @@ function isRateLimited(socketId) {
 }
 
 function isValidMessage(msg) {
-    return (
-        msg &&
-        typeof msg === 'object' &&
-        (msg.type === 'text' || msg.type === 'image') &&
-        typeof msg.content === 'string'
-    );
+    if (!msg || typeof msg !== 'object') return false;
+    if (msg.type === 'text' || msg.type === 'image') {
+        return typeof msg.content === 'string';
+    }
+    if (msg.type === 'attachment') {
+        return (
+            typeof msg.attachmentId === 'string' &&
+            typeof msg.mimeType === 'string' &&
+            typeof msg.filename === 'string'
+        );
+    }
+    return false;
 }
 
 io.on('connection', (socket) => {
@@ -51,7 +125,11 @@ io.on('connection', (socket) => {
         }
         io.emit('chat message', {
             type: msg.type,
-            content: msg.content,
+            content: typeof msg.content === 'string' ? msg.content : null,
+            attachmentId: msg.type === 'attachment' ? msg.attachmentId : null,
+            mimeType: msg.type === 'attachment' ? msg.mimeType : null,
+            filename: msg.type === 'attachment' ? msg.filename : null,
+            size: msg.type === 'attachment' ? (typeof msg.size === 'number' ? msg.size : null) : null,
             userId: socket.id,
             nickname: msg.nickname || null,
             color: typeof msg.color === 'string' ? msg.color : null,
